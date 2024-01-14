@@ -417,7 +417,17 @@ static bool eliminate_variable (kissat *solver, unsigned idx) {
   return true;
 }
 
-static void eliminate_variables (kissat *solver) {
+static bool array_contains_minus_1 (int val, int *array, unsigned array_size)
+{
+  if (!array)
+    return false;
+  for (int *begin = array, *end = array + array_size; begin != end; ++begin)
+    if (*begin == val + 1)
+      return true;
+  return false;
+}
+
+static void eliminate_variables (kissat *solver, int *idx_array, unsigned idx_array_size) {
   kissat_very_verbose (solver,
                        "trying to eliminate variables with bound %u",
                        solver->bounds.eliminate.additional_clauses);
@@ -477,6 +487,8 @@ static void eliminate_variables (kissat *solver) {
       }
       unsigned idx = kissat_pop_max_heap (solver, &solver->schedule);
       if (!can_eliminate_variable (solver, idx))
+        continue;
+      if (idx_array && !array_contains_minus_1(idx, idx_array, idx_array_size))
         continue;
       statistics *s = &solver->statistics;
       if (s->eliminate_resolutions > resolution_limit) {
@@ -589,7 +601,23 @@ static void eliminate (kissat *solver) {
                 solver->limits.eliminate.conflicts);
   init_map_and_kitten (solver);
   kissat_enter_dense_mode (solver, 0);
-  eliminate_variables (solver);
+  eliminate_variables (solver, NULL, 0);
+  kissat_resume_sparse_mode (solver, true, 0);
+  reset_map_and_kitten (solver);
+  kissat_check_statistics (solver);
+  STOP_SIMPLIFIER_AND_RESUME_SEARCH (eliminate);
+}
+
+static void eliminate_with_variables (kissat *solver, int *idx_array, unsigned idx_array_size) {
+  kissat_backtrack_propagate_and_flush_trail (solver);
+  assert (!solver->inconsistent);
+  STOP_SEARCH_AND_START_SIMPLIFIER (eliminate);
+  kissat_phase (solver, "eliminate", GET (eliminations),
+                "elimination limit of %" PRIu64 " conflicts hit",
+                solver->limits.eliminate.conflicts);
+  init_map_and_kitten (solver);
+  kissat_enter_dense_mode (solver, 0);
+  eliminate_variables (solver, idx_array, idx_array_size);
   kissat_resume_sparse_mode (solver, true, 0);
   reset_map_and_kitten (solver);
   kissat_check_statistics (solver);
@@ -601,6 +629,16 @@ int kissat_eliminate (kissat *solver) {
   INC (eliminations);
   eliminate (solver);
   UPDATE_CONFLICT_LIMIT (eliminate, eliminations, NLOG2N, true);
+  solver->waiting.eliminate.reduce = solver->statistics.reductions + 1;
+  solver->last.eliminate = solver->statistics.search_ticks;
+  return solver->inconsistent ? 20 : 0;
+}
+
+int kissat_eliminate_with_variables (kissat *solver, int *idx_array, unsigned idx_array_size) {
+  assert (!solver->inconsistent);
+  INC (eliminations);
+  eliminate_with_variables (solver, idx_array, idx_array_size);
+  // UPDATE_CONFLICT_LIMIT (eliminate_with_variables, eliminations, NLOG2N, true);
   solver->waiting.eliminate.reduce = solver->statistics.reductions + 1;
   solver->last.eliminate = solver->statistics.search_ticks;
   return solver->inconsistent ? 20 : 0;

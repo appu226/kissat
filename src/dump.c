@@ -1,4 +1,4 @@
-#ifndef NDEBUG
+#include "dump.h"
 
 #include "inline.h"
 
@@ -288,6 +288,88 @@ int dump (kissat *solver) {
   return 0;
 }
 
-#else
-int kissat_dump_dummy_to_avoid_warning;
-#endif
+int* kissat_dump_cnf (kissat *solver, unsigned* result_size)
+{
+
+  // count number of elements
+  *result_size = 0;
+  for (all_literals (lit)) {
+    if (solver->watching) {
+      for (all_binary_blocking_watches (watch, WATCHES (lit))) {
+        if (!watch.type.binary)
+          continue;
+        const unsigned other = watch.binary.lit;
+        if (lit > other)
+          continue;
+        *result_size += 3;
+      }
+    } else {
+      for (all_binary_large_watches (watch, WATCHES (lit))) {
+        if (!watch.type.binary)
+          continue;
+        const unsigned other = watch.binary.lit;
+        if (lit > other)
+          continue;
+        *result_size += 3;
+      }
+    }
+  }
+
+  for (all_clauses (c)) {
+    for (all_literals_in_clause (lit, c)) {
+      ++lit; // remove warning
+      ++*result_size;
+    }
+    ++*result_size;
+  }
+
+  // allocate result
+  int * result;
+  if (*result_size == 0)
+  {
+    *result_size = 1;
+    result = malloc(sizeof(int));
+    *result = 0;
+    return result;
+  }
+  result = malloc(sizeof(int)* (*result_size));
+
+  // set values
+  int *next = result;
+  for (all_literals (lit)) {
+    if (solver->watching) {
+      for (all_binary_blocking_watches (watch, WATCHES (lit))) {
+        if (!watch.type.binary)
+          continue;
+        const unsigned other = watch.binary.lit;
+        if (lit > other)
+          continue;
+        *(next++) = kissat_export_literal(solver, lit);
+        *(next++) = kissat_export_literal(solver, other);
+        *(next++) = 0;
+      }
+    } else {
+      for (all_binary_large_watches (watch, WATCHES (lit))) {
+        if (!watch.type.binary)
+          continue;
+        const unsigned other = watch.binary.lit;
+        if (lit > other)
+          continue;
+        *result_size += 3;
+        *(next++) = kissat_export_literal(solver, lit);
+        *(next++) = kissat_export_literal(solver, other);
+        *(next++) = 0;
+      }
+    }
+  }
+
+  for (all_clauses (c)) {
+    for (all_literals_in_clause (lit, c)) {
+      *(next++) = kissat_export_literal (solver, lit);
+    }
+    *(next++) = 0;
+  }
+
+
+  return result;
+}

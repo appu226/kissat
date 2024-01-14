@@ -33,7 +33,7 @@ test: all tissat
 REMOVE=*.gcda *.gcno *.gcov gmon.out *~ *.proof
 
 clean:
-	rm -f kissat tissat kitten
+	rm -f kissat tissat kitten preprocess
 	rm -f makefile build.h *.o *.a *.so
 	rm -f $(REMOVE)
 	cd ../src; rm -f $(REMOVE)
@@ -53,6 +53,9 @@ tissat: test.o $(TSTOBJ) libkissat.a makefile
 
 kitten: kitten.c random.h stack.h makefile
 	$(CC) $(CFLAGS) -DSTAND_ALONE_KITTEN -o $@ ../src/kitten.c
+
+preprocess: ../preprocess/preprocess.c kissat.h eliminate.h dump.h libkissat.a makefile
+	$(CC) $(CFLAGS) -o $@ ../preprocess/preprocess.c $(LIBS) -lm
 
 build.h:
 	../scripts/generate-build-header.sh > $@

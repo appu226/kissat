@@ -18,5 +18,6 @@ int kissat_eliminate (struct kissat *);
 void kissat_eliminate_binary (struct kissat *, unsigned, unsigned);
 void kissat_eliminate_clause (struct kissat *, struct clause *, unsigned);
 void kissat_update_variable_score (struct kissat *, unsigned idx);
+int kissat_eliminate_with_variables (struct kissat *solver, int *idx_array, unsigned idx_array_size);
 
 #endif

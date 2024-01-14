@@ -39,4 +39,6 @@ void kissat_set_decision_limit (kissat *solver, unsigned);
 
 void kissat_print_statistics (kissat *solver);
 
+int kissat_eliminate_variables (kissat *solver, int *idx_array, unsigned idx_array_size);
+
 #endif

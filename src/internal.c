@@ -1,5 +1,6 @@
 #include "allocate.h"
 #include "backtrack.h"
+#include "eliminate.h"
 #include "error.h"
 #include "import.h"
 #include "inline.h"
@@ -10,6 +11,7 @@
 #include "resize.h"
 #include "resources.h"
 #include "search.h"
+#include "terminate.h"
 
 #include <assert.h>
 #include <inttypes.h>
@@ -497,4 +499,13 @@ int kissat_value (kissat *solver, int elit) {
   if (elit < 0)
     tmp = -tmp;
   return tmp < 0 ? -elit : elit;
+}
+
+int kissat_eliminate_variables (kissat *solver, int* idx_array, unsigned idx_array_size)
+{
+  kissat_require_initialized (solver);
+  kissat_require (EMPTY_STACK (solver->clause),
+                  "incomplete clause (terminating zero not added)");
+  kissat_require (!GET (searches), "incremental solving not supported");
+  return kissat_search_for_variable_elimination (solver, idx_array, idx_array_size);
 }

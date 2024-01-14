@@ -171,3 +171,19 @@ int kissat_search (kissat *solver) {
   stop_search (solver, res);
   return res;
 }
+
+int kissat_search_for_variable_elimination (kissat *solver, int* idx_array, unsigned idx_array_size)
+{
+  start_search (solver);
+  int res = solver->inconsistent ? 20 : 0;
+  if (res)
+  {
+    printf("[ERROR] solver inconsistent.\n"); fflush(stdout);
+    return res;
+  }
+  kissat_search_propagate (solver);
+  // if (kissat_eliminating (solver))
+  res = kissat_eliminate_with_variables (solver, idx_array, idx_array_size);
+  stop_search (solver, res);
+  return res;
+}
