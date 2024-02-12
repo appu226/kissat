@@ -417,12 +417,12 @@ static bool eliminate_variable (kissat *solver, unsigned idx) {
   return true;
 }
 
-static bool array_contains_minus_1 (int val, int *array, unsigned array_size)
+static bool array_contains (int val, int *array, unsigned array_size)
 {
   if (!array)
     return false;
   for (int *begin = array, *end = array + array_size; begin != end; ++begin)
-    if (*begin == val + 1)
+    if (*begin == val)
       return true;
   return false;
 }
@@ -488,7 +488,7 @@ static void eliminate_variables (kissat *solver, int *idx_array, unsigned idx_ar
       unsigned idx = kissat_pop_max_heap (solver, &solver->schedule);
       if (!can_eliminate_variable (solver, idx))
         continue;
-      if (idx_array && !array_contains_minus_1(idx, idx_array, idx_array_size))
+      if (idx_array && !array_contains(kissat_export_literal(solver, LIT(idx)), idx_array, idx_array_size))
         continue;
       statistics *s = &solver->statistics;
       if (s->eliminate_resolutions > resolution_limit) {
